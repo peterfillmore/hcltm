@@ -254,7 +254,7 @@ func TestDfdBothOut(t *testing.T) {
 
 }
 
-func TestDfdOutWrongExt(t *testing.T) {
+/*func TestDfdOutWrongExt(t *testing.T) {
 	cmd := testDfdCommand(t)
 
 	var code int
@@ -274,7 +274,7 @@ func TestDfdOutWrongExt(t *testing.T) {
 		t.Errorf("%s did not contain %s", out, "-out flag must end in .png")
 	}
 
-}
+} */
 
 func TestDfdFoundExisting(t *testing.T) {
 	d, err := ioutil.TempDir("", "")
@@ -337,4 +337,33 @@ func TestDfdSuccessfulOut(t *testing.T) {
 		t.Errorf("%s did not contain %s", out, fmt.Sprintf("Successfully created '%s/out.png'", d))
 	}
 
+}
+
+func TestDfdSuccessfulSVGOut(t *testing.T) {
+	d, err := ioutil.TempDir("", "")
+	if err != nil {
+		t.Fatalf("Error creatig tmp dir: %s", err)
+	}
+
+	defer os.RemoveAll(d)
+
+	cmd := testDfdCommand(t)
+
+	var code int
+
+	out := capturer.CaptureStdout(func() {
+		code = cmd.Run([]string{
+			fmt.Sprintf("-out=%s/out.svg", d), 
+			"-imageformat=svg",
+			"./testdata/tm3.hcl",
+		})
+	})
+
+	if code != 0 {
+		t.Errorf("Code did not equal 0: %d", code)
+	}
+
+	if !strings.Contains(out, fmt.Sprintf("Successfully created '%s/out.svg'", d)) {
+		t.Errorf("%s did not contain %s", out, fmt.Sprintf("Successfully created '%s/out.svg'", d))
+	}
 }

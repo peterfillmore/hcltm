@@ -36,7 +36,7 @@ threatmodel "threatmodel name" {
   link = "https://link/to/docs"
 
   // The diagram_link is optional
-  // If it ends in .jpg or .png then it'll be embedded in the resultant dashboard
+  // If it ends in .jpg, .png or .svg then it'll be embedded in the resultant dashboard
 
   // If a diagram_link isn't set, but the threatmodel includes a
   // data_flow_diagram, this will be automatically generated and included

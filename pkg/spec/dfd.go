@@ -3,7 +3,6 @@ package spec
 import (
 	"io/ioutil"
 	"os"
-
 	"github.com/goccy/go-graphviz"
 	dfd "github.com/marqeta/go-dfd/dfd"
 	"gonum.org/v1/gonum/graph"
@@ -24,6 +23,28 @@ func (tm *Threatmodel) GenerateDfdPng(filepath string) error {
 	dotBytes := []byte(dot)
 
 	err = dotToPng(dotBytes, filepath)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (tm *Threatmodel) GenerateDfdSvg(filepath string) error {
+	tmpFile, err := ioutil.TempFile("", "dfd")
+	if err != nil {
+		return err
+	}
+	defer os.RemoveAll(tmpFile.Name())
+
+	dot, err := tm.generateDfdDotFile(tmpFile.Name())
+	if err != nil {
+		return err
+	}
+
+	dotBytes := []byte(dot)
+
+	err = dotToSvg(dotBytes, filepath)
 	if err != nil {
 		return err
 	}
@@ -155,7 +176,6 @@ func (tm *Threatmodel) generateDfdDotFile(filepath string) (string, error) {
 			if name == flow.From {
 				from = data_store
 			}
-
 			if name == flow.To {
 				to = data_store
 			}
@@ -185,6 +205,19 @@ func dotToPng(raw []byte, file string) error {
 
 	out := graphviz.New()
 	err = out.RenderFilename(g, graphviz.PNG, file)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func dotToSvg(raw []byte, file string) error {
+	g, err := graphviz.ParseBytes(raw)
+	if(err != nil) {
+		return err
+	}
+	out := graphviz.New()
+	err = out.RenderFilename(g, graphviz.SVG, file)
 	if err != nil {
 		return err
 	}

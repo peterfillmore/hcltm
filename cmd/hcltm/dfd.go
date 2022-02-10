@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
-	"path/filepath"
+	//"path/filepath"
 	"strings"
 
 	"github.com/xntrik/hcltm/pkg/spec"
@@ -15,22 +15,23 @@ type DfdCommand struct {
 	flagOutDir    string
 	flagOutFile   string
 	flagOverwrite bool
+	flagImageFormat string
 }
 
 func (c *DfdCommand) Help() string {
 	helpText := `
 Usage: hcltm dfd [options] -outdir=<directory> <files>
 
-  Generate Data Flow Diagram PNG files from existing Threat model HCL files
+  Generate Data Flow Diagram PNG/SVG files from existing Threat model HCL files
 	(as specified by <files>) 
 
  -outdir=<directory>
-   Directory to output PNG files. Will create directory if it doesn't exist.
+   Directory to output image files. Will create directory if it doesn't exist.
    Either this, or -out, must be set
 
- -out=<filename>.png
-   Name of output PNG file. Only the first discovered data_flow_diagram will be converted into a PNG.
-   Either this, or -outdir, must be set
+ -out=<filename>
+   Name of output image file. Only the first discovered data_flow_diagram will be converted into an image.
+   Either this, or -outdir, must be set, defaults to PNG
 
 Options:
 
@@ -39,6 +40,7 @@ Options:
 
  -overwrite
 
+ -imageformat=<png/svg>
 `
 	return strings.TrimSpace(helpText)
 }
@@ -49,6 +51,8 @@ func (c *DfdCommand) Run(args []string) int {
 	flagSet.StringVar(&c.flagOutDir, "outdir", "", "Directory to output PNG files. Will create directory if it doesn't exist. Either this, or -out, must be set")
 	flagSet.StringVar(&c.flagOutFile, "out", "", "Name of output PNG file. Either this, or -outdir, must be set")
 	flagSet.BoolVar(&c.flagOverwrite, "overwrite", false, "Overwrite existing files in the outdir. Defaults to false")
+	flagSet.StringVar(&c.flagImageFormat, "imageformat", "png", "Set image format for output. Either png or svg. Defaults to PNG")
+	
 	flagSet.Parse(args)
 
 	if c.flagConfig != "" {
@@ -72,11 +76,16 @@ func (c *DfdCommand) Run(args []string) int {
 		return 1
 	}
 
-	if c.flagOutFile != "" && filepath.Ext(c.flagOutFile) != ".png" {
-		fmt.Printf("-out flag must end in .png\n\n")
+	if c.flagImageFormat != "png" && c.flagImageFormat != "svg" {
+		fmt.Printf("-imageformat flag must be png or svg\n\n")
 		fmt.Println(c.Help())
 		return 1
 	}
+	//if c.flagOutFile != "" && filepath.Ext(c.flagOutFile) != ".png" {
+	//	fmt.Printf("-out flag must end in .png\n\n")
+	//	fmt.Println(c.Help())
+	//	return 1
+	//}
 
 	if len(flagSet.Args()) == 0 {
 		fmt.Printf("Please provide file(s)\n\n")
@@ -150,7 +159,11 @@ func (c *DfdCommand) Run(args []string) int {
 			for _, tm := range tmParser.GetWrapped().Threatmodels {
 				if tm.DataFlowDiagram != nil {
 					if c.flagOutFile != "" {
-						err = tm.GenerateDfdPng(c.flagOutFile)
+						if c.flagImageFormat == "png" {
+							err = tm.GenerateDfdPng(c.flagOutFile)	
+						} else if c.flagImageFormat == "svg" {
+							err = tm.GenerateDfdSvg(c.flagOutFile)
+						}
 						if err != nil {
 							fmt.Printf("Error generating DFD: %s\n", err)
 							return 1
@@ -159,13 +172,22 @@ func (c *DfdCommand) Run(args []string) int {
 						fmt.Printf("Successfully created '%s'\n", c.flagOutFile)
 						break
 					} else {
-						err = tm.GenerateDfdPng(outfilePath(c.flagOutDir, tm.Name, file, ".png"))
+						if c.flagImageFormat == "png" {
+							err = tm.GenerateDfdPng(outfilePath(c.flagOutDir, tm.Name, file, ".png"))
+						} else if c.flagImageFormat == "svg" {
+							err = tm.GenerateDfdSvg(outfilePath(c.flagOutDir, tm.Name, file, ".svg"))
+						}
 						if err != nil {
 							fmt.Printf("Error generating DFD: %s\n", err)
 							return 1
 						}
 
-						fmt.Printf("Successfully created '%s'\n", outfilePath(c.flagOutDir, tm.Name, file, ".png"))
+						if c.flagImageFormat == "png" {
+							fmt.Printf("Successfully created '%s'\n", outfilePath(c.flagOutDir, tm.Name, file, ".png"))
+						} else if c.flagImageFormat == "svg" {
+							fmt.Printf("Successfully created '%s'\n", outfilePath(c.flagOutDir, tm.Name, file, ".svg"))
+						}
+
 					}
 				}
 			}
@@ -177,5 +199,5 @@ func (c *DfdCommand) Run(args []string) int {
 }
 
 func (c *DfdCommand) Synopsis() string {
-	return "Generate Data Flow Diagram PNG files from existing HCL threatmodel file(s)"
+	return "Generate Data Flow Diagram image files from existing HCL threatmodel file(s)"
 }
